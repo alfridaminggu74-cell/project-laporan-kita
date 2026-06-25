@@ -121,8 +121,11 @@ class NaiveBayesController extends Controller
             ], 400);
         }
 
-        // Update kategori laporan
-        $laporan->update(['kategori' => $kategoriBaru]);
+        // Update kategori laporan dan tandai sebagai data training terverifikasi
+        $laporan->update([
+            'kategori' => $kategoriBaru,
+            'is_training' => true,
+        ]);
 
         // Kirim notifikasi ke pelapor
         if ($laporan->user) {

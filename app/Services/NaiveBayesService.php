@@ -116,9 +116,10 @@ class NaiveBayesService
      */
     public function train(?array $laporanIds = null): array
     {
-        // Ambil data laporan untuk training
+        // Ambil data laporan untuk training — hanya yang sudah diverifikasi
         $query = Laporan::whereNotNull('kategori')
-            ->where('kategori', '!=', '');
+            ->where('kategori', '!=', '')
+            ->where('is_training', true);
 
         if ($laporanIds) {
             $query->whereIn('id', $laporanIds);

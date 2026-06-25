@@ -174,7 +174,6 @@
                                         @endif
                                     </td>
                                     <td class="px-4 py-3">
-                                        @if(!$hasil['cocok'])
                                         <button data-action="koreksi-kategori"
                                             data-laporan-id="{{ $hasil['id'] }}"
                                             data-kategori-lama="{{ $hasil['kategori_asli'] ?? '' }}"
@@ -182,9 +181,6 @@
                                             class="inline-flex items-center gap-1 px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white text-[11px] font-bold rounded-lg transition-all">
                                             <span class="material-symbols-outlined text-[12px]">edit</span> Koreksi
                                         </button>
-                                        @else
-                                        <span class="text-xs text-slate-300">-</span>
-                                        @endif
                                     </td>
                                 </tr>
                                 @endforeach

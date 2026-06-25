@@ -10,16 +10,19 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Hash;
 use App\Notifications\LaporanStatusNotification;
 use App\Services\CloudinaryService;
+use App\Services\NaiveBayesService;
 use App\Models\Kategori;
 
 
 class DashboardAdminController extends Controller
 {
     protected $cloudinary;
+    protected NaiveBayesService $nb;
 
-    public function __construct(CloudinaryService $cloudinary)
+    public function __construct(CloudinaryService $cloudinary, NaiveBayesService $nb)
     {
         $this->cloudinary = $cloudinary;
+        $this->nb = $nb;
     }
     public function index()
     {
@@ -81,7 +84,16 @@ class DashboardAdminController extends Controller
     {
         $laporan = Laporan::with('user')->findOrFail($id);
         $kategoris = Kategori::all();
-        return view('dashboardadmin.detaillaporan', compact('laporan', 'kategoris'));
+
+        $hasilNB = null;
+        $teksLaporan = trim(($laporan->judul ?? '') . ' ' . ($laporan->deskripsi ?? '') . ' ' . ($laporan->lokasi ?? ''));
+        try {
+            $hasilNB = $this->nb->predict($teksLaporan);
+        } catch (\Exception $e) {
+            $hasilNB = null;
+        }
+
+        return view('dashboardadmin.detaillaporan', compact('laporan', 'kategoris', 'hasilNB'));
     }
 
     public function updateStatus(Request $request, $id)
@@ -89,12 +101,14 @@ class DashboardAdminController extends Controller
         $request->validate([
             'status' => 'required|in:baru,diproses,selesai,ditolak',
             'kategori' => 'required|string|max:100',
+            'is_training' => 'nullable|boolean',
         ]);
 
         $laporan = Laporan::with('user')->findOrFail($id);
         $oldStatus = $laporan->status;
         $laporan->status = $request->status;
         $laporan->kategori = $request->kategori;
+        $laporan->is_training = $request->boolean('is_training');
         $laporan->save();
 
         // Kirim notifikasi ke pelapor jika status berubah

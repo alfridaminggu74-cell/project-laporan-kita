@@ -10,14 +10,17 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\Support;
 use App\Models\Kategori;
 use App\Services\CloudinaryService;
+use App\Services\NaiveBayesService;
 
 class DashboardUserController extends Controller
 {
     protected $cloudinary;
+    protected NaiveBayesService $nb;
 
-    public function __construct(CloudinaryService $cloudinary)
+    public function __construct(CloudinaryService $cloudinary, NaiveBayesService $nb)
     {
         $this->cloudinary = $cloudinary;
+        $this->nb = $nb;
     }
     public function index()
     {
@@ -77,14 +80,32 @@ class DashboardUserController extends Controller
             }
         }
 
+        // Dapatkan prediksi NB untuk teks laporan
+        $teksLaporan = trim(($request->judul ?? '') . ' ' . ($request->deskripsi ?? '') . ' ' . ($request->lokasi ?? ''));
+        $hasilNB = $this->nb->predict($teksLaporan);
+        $kategoriNB = $hasilNB['kategori'] ?? null;
+        $probNB = $hasilNB['probabilitas'] ?? 0;
+
+        // Tentukan kategori final:
+        // - Jika NB punya prediksi dengan confidence >= 60%, gunakan prediksi NB
+        // - Jika tidak, gunakan pilihan user
+        $kategoriFinal = $request->kategori;
+        $kategoriUser = $request->kategori;
+
+        if ($kategoriNB && $kategoriNB !== $request->kategori && $probNB >= 60) {
+            $kategoriFinal = $kategoriNB;
+        }
+
         $laporan = Laporan::create([
-            'user_id'   => Auth::id(),
-            'judul'     => $request->judul,
-            'kategori'  => $request->kategori,
-            'deskripsi' => $request->deskripsi,
-            'lokasi'    => $request->lokasi,
-            'foto'      => $fotoPaths,
-            'status'    => 'baru',
+            'user_id'          => Auth::id(),
+            'judul'            => $request->judul,
+            'kategori'         => $kategoriFinal,
+            'kategori_asli_user' => ($kategoriUser !== $kategoriFinal) ? $kategoriUser : null,
+            'deskripsi'        => $request->deskripsi,
+            'lokasi'           => $request->lokasi,
+            'foto'             => $fotoPaths,
+            'status'           => 'baru',
+            'is_training'      => false,
         ]);
 
         // Kirim notifikasi ke semua admin
@@ -93,7 +114,12 @@ class DashboardUserController extends Controller
             $admin->notify(new \App\Notifications\NewLaporanAdminNotification($laporan));
         }
 
-        return redirect()->route('dashboarduser.index')->with('success', 'Laporan berhasil dikirim!');
+        $pesan = 'Laporan berhasil dikirim!';
+        if ($kategoriNB && $kategoriNB !== $request->kategori && $probNB >= 60) {
+            $pesan = 'Laporan berhasil dikirim! Kategori disesuaikan menjadi "' . ucfirst($kategoriNB) . '" berdasarkan analisis sistem.';
+        }
+
+        return redirect()->route('dashboarduser.index')->with('success', $pesan);
     }
 
     public function show($id)
@@ -271,11 +297,25 @@ class DashboardUserController extends Controller
             'foto.*'  => 'image|mimes:jpeg,png,jpg|max:5120',
         ]);
 
+        // Dapatkan prediksi NB untuk teks laporan yang diupdate
+        $teksLaporan = trim(($request->judul ?? '') . ' ' . ($request->deskripsi ?? '') . ' ' . ($request->lokasi ?? ''));
+        $hasilNB = $this->nb->predict($teksLaporan);
+        $kategoriNB = $hasilNB['kategori'] ?? null;
+        $probNB = $hasilNB['probabilitas'] ?? 0;
+
+        $kategoriFinal = $request->kategori;
+        $kategoriUser = $request->kategori;
+
+        if ($kategoriNB && $kategoriNB !== $request->kategori && $probNB >= 60) {
+            $kategoriFinal = $kategoriNB;
+        }
+
         $data = [
-            'judul'     => $request->judul,
-            'kategori'  => $request->kategori,
-            'deskripsi' => $request->deskripsi,
-            'lokasi'    => $request->lokasi,
+            'judul'            => $request->judul,
+            'kategori'         => $kategoriFinal,
+            'kategori_asli_user' => ($kategoriUser !== $kategoriFinal) ? $kategoriUser : $laporan->kategori_asli_user,
+            'deskripsi'        => $request->deskripsi,
+            'lokasi'           => $request->lokasi,
         ];
 
         if ($request->hasFile('foto')) {
@@ -288,7 +328,12 @@ class DashboardUserController extends Controller
 
         $laporan->update($data);
 
-        return redirect()->route('dashboarduser.laporan')->with('success', 'Laporan berhasil diperbarui!');
+        $pesan = 'Laporan berhasil diperbarui!';
+        if ($kategoriNB && $kategoriNB !== $request->kategori && $probNB >= 60) {
+            $pesan = 'Laporan berhasil diperbarui! Kategori disesuaikan menjadi "' . ucfirst($kategoriNB) . '" berdasarkan analisis sistem.';
+        }
+
+        return redirect()->route('dashboarduser.laporan')->with('success', $pesan);
     }
 
     public function destroy($id)

@@ -380,6 +380,7 @@ class LaporanSeeder extends Seeder
         ];
 
         foreach ($laporans as $laporan) {
+            $laporan['is_training'] = true;
             Laporan::create($laporan);
         }
     }

@@ -10,14 +10,17 @@ class Laporan extends Model
         'user_id',
         'judul',
         'kategori',
+        'kategori_asli_user',
         'deskripsi',
         'lokasi',
         'foto',
         'status',
+        'is_training',
     ];
 
     protected $casts = [
         'foto' => 'array',
+        'is_training' => 'boolean',
     ];
 
     public function user()

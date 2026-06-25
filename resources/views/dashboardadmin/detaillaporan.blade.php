@@ -222,9 +222,25 @@
                                         $currentKategori = \App\Models\Kategori::where('slug', $laporan->kategori)->first();
                                         $kategoriNama = $currentKategori ? $currentKategori->nama : ucfirst($laporan->kategori ?? 'Umum');
                                     @endphp
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-white border border-slate-200 text-slate-600">
-                                        {{ $kategoriNama }}
-                                    </span>
+                                    <div class="flex items-center gap-2">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-white border border-slate-200 text-slate-600">
+                                            {{ $kategoriNama }}
+                                        </span>
+                                        @if($laporan->is_training)
+                                        <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100">
+                                            <span class="material-symbols-outlined text-[10px]">check_circle</span> Training
+                                        </span>
+                                        @else
+                                        <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-600 border border-amber-100">
+                                            <span class="material-symbols-outlined text-[10px]">hourglass</span> Training?
+                                        </span>
+                                        @endif
+                                    </div>
+                                    @if($laporan->kategori_asli_user)
+                                    <p class="text-[9px] text-rose-500 mt-1 font-medium">
+                                        Dipilih user: <span class="font-semibold capitalize">{{ $laporan->kategori_asli_user }}</span>
+                                    </p>
+                                    @endif
                                 </div>
                                 <div>
                                     <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Lokasi</p>
@@ -304,11 +320,63 @@
                                     </select>
                                 </div>
 
+                                <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                    <input type="hidden" name="is_training" value="0">
+                                    <input type="checkbox" name="is_training" id="is_training" value="1" {{ $laporan->is_training ? 'checked' : '' }} class="w-4 h-4 text-brand-600 bg-white border-slate-300 rounded focus:ring-brand-500 cursor-pointer">
+                                    <label for="is_training" class="text-xs font-semibold text-slate-700 cursor-pointer select-none">
+                                        Data Training NB
+                                        <span class="block text-[10px] text-slate-400 font-normal mt-0.5">Gunakan laporan ini untuk melatih model Naive Bayes</span>
+                                    </label>
+                                </div>
+
                                 <button type="submit" class="w-full bg-brand-900 text-white py-3.5 rounded-lg text-sm font-semibold hover:bg-slate-800 shadow-md transition-all active:scale-[0.98] flex items-center justify-center gap-2">
                                     Simpan Perubahan <span class="material-symbols-outlined text-[18px]">save</span>
                                 </button>
                             </form>
                         </div>
+
+                        @if(isset($hasilNB) && $hasilNB && $hasilNB['kategori'])
+                        <div class="mt-6 bg-gradient-to-br from-brand-50 to-white rounded-xl border border-brand-100 p-5">
+                            <h4 class="text-xs font-bold text-brand-900 uppercase tracking-wider mb-4 flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-[16px] text-brand-500">model_training</span> Prediksi Naive Bayes
+                            </h4>
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Kategori Prediksi</span>
+                                <span class="px-2 py-0.5 bg-brand-500/10 text-brand-700 text-xs font-bold rounded border border-brand-200 capitalize">
+                                    {{ $hasilNB['kategori'] }}
+                                </span>
+                            </div>
+                            <div class="mb-3">
+                                <div class="flex items-center justify-between mb-1">
+                                    <span class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Confidence</span>
+                                    <span class="text-xs font-bold {{ $hasilNB['probabilitas'] >= 70 ? 'text-emerald-600' : 'text-amber-600' }}">{{ $hasilNB['probabilitas'] }}%</span>
+                                </div>
+                                <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                    <div class="h-full rounded-full {{ $hasilNB['probabilitas'] >= 70 ? 'bg-emerald-500' : 'bg-amber-500' }}" style="width: {{ $hasilNB['probabilitas'] }}%"></div>
+                                </div>
+                            </div>
+                            @if($laporan->kategori !== $hasilNB['kategori'])
+                            <div class="flex items-center gap-1.5 p-2 bg-amber-50 border border-amber-100 rounded-lg">
+                                <span class="material-symbols-outlined text-[14px] text-amber-600">warning</span>
+                                <span class="text-[10px] font-medium text-amber-700">NB memprediksi kategori berbeda dari laporan ini</span>
+                            </div>
+                            @endif
+                            @if(isset($hasilNB['probabilitas_semua']))
+                            <div class="mt-3 space-y-1.5">
+                                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Detail Probabilitas</p>
+                                @foreach($hasilNB['probabilitas_semua'] as $kat => $prob)
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] capitalize text-slate-600 w-20 font-medium">{{ $kat }}</span>
+                                    <div class="flex-1 h-1 bg-slate-100 rounded-full overflow-hidden">
+                                        <div class="h-full rounded-full bg-brand-400" style="width: {{ $prob }}%"></div>
+                                    </div>
+                                    <span class="text-[9px] font-bold text-slate-400 w-8 text-right">{{ $prob }}%</span>
+                                </div>
+                                @endforeach
+                            </div>
+                            @endif
+                        </div>
+                        @endif
 
                         <div class="mt-6 bg-slate-50 rounded-xl border border-slate-200 p-5">
                             <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider mb-4 flex items-center gap-1.5">
