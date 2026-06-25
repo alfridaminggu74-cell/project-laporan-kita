@@ -135,7 +135,6 @@
                                     <th class="px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Prediksi NB</th>
                                     <th class="px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Probabilitas</th>
                                     <th class="px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Status</th>
-                                    <th class="px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100">
@@ -173,15 +172,6 @@
                                         </span>
                                         @endif
                                     </td>
-                                    <td class="px-4 py-3">
-                                        <button data-action="koreksi-kategori"
-                                            data-laporan-id="{{ $hasil['id'] }}"
-                                            data-kategori-lama="{{ $hasil['kategori_asli'] ?? '' }}"
-                                            data-prediksi="{{ $hasil['prediksi'] ?? '' }}"
-                                            class="inline-flex items-center gap-1 px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white text-[11px] font-bold rounded-lg transition-all">
-                                            <span class="material-symbols-outlined text-[12px]">edit</span> Koreksi
-                                        </button>
-                                    </td>
                                 </tr>
                                 @endforeach
                             </tbody>
@@ -192,53 +182,6 @@
             </div>
         </div>
     </main>
-
-    <!-- MODAL KOREKSI KATEGORI -->
-    <div id="modal-koreksi" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
-        <div id="modal-overlay" class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
-        <div class="relative bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
-            <div class="p-5 border-b border-slate-100 flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <span class="material-symbols-outlined text-brand-500">edit</span>
-                    <h3 class="font-bold text-brand-900 text-sm">Koreksi Kategori Laporan</h3>
-                </div>
-                <button id="btn-tutup-modal-tutup" class="p-1 text-slate-400 hover:text-slate-700 rounded-lg transition-colors">
-                    <span class="material-symbols-outlined text-[20px]">close</span>
-                </button>
-            </div>
-            <div class="p-5 space-y-4">
-                <div class="flex items-center gap-2 text-sm">
-                    <span class="text-slate-500 font-medium">Laporan:</span>
-                    <span id="modal-laporan-id" class="font-mono font-bold text-brand-900"></span>
-                </div>
-                <div class="flex items-center gap-2 text-sm">
-                    <span class="text-slate-500 font-medium">Kategori saat ini:</span>
-                    <span id="modal-kategori-lama" class="px-2 py-0.5 bg-rose-50 text-rose-700 text-xs font-bold rounded capitalize"></span>
-                </div>
-                <div class="flex items-center gap-2 text-sm">
-                    <span class="text-slate-500 font-medium">Prediksi NB:</span>
-                    <span id="modal-prediksi" class="px-2 py-0.5 bg-brand-50 text-brand-700 text-xs font-bold rounded capitalize"></span>
-                </div>
-                <div class="pt-2">
-                    <label class="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">Kategori Baru</label>
-                    <select id="modal-kategori-baru" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 text-slate-700 font-medium">
-                        @foreach($kategoris as $kat)
-                            <option value="{{ $kat->slug }}">{{ $kat->nama }}</option>
-                        @endforeach
-                    </select>
-                    <p class="text-[11px] text-slate-400 mt-1.5">Kategori ini akan menggantikan kategori lama dan pelapor akan mendapat notifikasi.</p>
-                </div>
-            </div>
-            <div class="p-5 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
-                <button onclick="tutupModal()" class="px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-all">
-                    Batal
-                </button>
-                <button id="btn-konfirmasi-koreksi" class="px-5 py-2.5 bg-brand-500 text-white rounded-lg text-sm font-semibold hover:bg-brand-600 transition-all flex items-center gap-2">
-                    <span class="material-symbols-outlined text-[16px]">save</span> Simpan
-                </button>
-            </div>
-        </div>
-    </div>
 
     <script>
         function toggleSidebar() {
@@ -256,123 +199,12 @@
             }
         }
 
-        // ======================
-        // MODAL KOREKSI KATEGORI
-        // ======================
-        let laporanIdKoreksi = null;
-
         document.addEventListener('DOMContentLoaded', function () {
-            // Apply prob-bar widths from data attributes
             document.querySelectorAll('.prob-bar').forEach(function (el) {
                 var w = el.getAttribute('data-width');
                 if (w) el.style.width = w + '%';
             });
-
-            // Delegate click on koreksi buttons
-            document.body.addEventListener('click', function (e) {
-                const btn = e.target.closest('[data-action="koreksi-kategori"]');
-                if (!btn) return;
-
-                laporanIdKoreksi = btn.dataset.laporanId;
-                const kategoriLama = btn.dataset.kategoriLama;
-                const prediksi = btn.dataset.prediksi;
-
-                // Isi modal
-                document.getElementById('modal-laporan-id').textContent = '#LPK-' + laporanIdKoreksi;
-                document.getElementById('modal-kategori-lama').textContent = kategoriLama;
-                document.getElementById('modal-prediksi').textContent = prediksi;
-
-                // Set default pilihan ke prediksi
-                const select = document.getElementById('modal-kategori-baru');
-                for (let opt of select.options) {
-                    if (opt.value.toLowerCase() === prediksi.toLowerCase()) {
-                        opt.selected = true;
-                        break;
-                    }
-                }
-
-                // Tampilkan modal
-                document.getElementById('modal-koreksi').classList.remove('hidden');
-                document.getElementById('modal-koreksi').classList.add('flex');
-            });
-
-            // Close modal
-            document.getElementById('btn-tutup-modal-tutup')?.addEventListener('click', tutupModal);
-            document.getElementById('modal-overlay')?.addEventListener('click', tutupModal);
-
-            // Submit koreksi
-            document.getElementById('btn-konfirmasi-koreksi')?.addEventListener('click', function () {
-                const kategoriBaru = document.getElementById('modal-kategori-baru').value;
-                if (!kategoriBaru) {
-                    alert('Pilih kategori baru terlebih dahulu.');
-                    return;
-                }
-
-                const btn = this;
-                btn.disabled = true;
-                btn.innerHTML = '<span class="material-symbols-outlined text-[16px] animate-spin">refresh</span> Menyimpan...';
-
-                fetch('/dashboardadmin/naivebayes/evaluasi/' + laporanIdKoreksi + '/koreksi', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({ kategori_baru: kategoriBaru })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        // Update baris tabel
-                        const row = document.getElementById('row-' + laporanIdKoreksi);
-                        if (row) {
-                            // Update kategori asli
-                            row.querySelector('.kategori-asli').textContent = kategoriBaru;
-                            row.querySelector('.kategori-asli').classList.add('line-through', 'text-slate-400');
-
-                            // Ubah status badge jadi BENAR
-                            const badge = row.querySelector('.status-badge');
-                            if (badge) {
-                                badge.className = 'inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 border border-emerald-100 text-emerald-700 text-[10px] font-bold rounded uppercase';
-                                badge.innerHTML = '<span class="material-symbols-outlined text-[12px]">check_circle</span> Dikoreksi';
-                            }
-
-                            // Hapus tombol koreksi
-                            const aksiTd = row.querySelector('td:last-child');
-                            if (aksiTd) {
-                                aksiTd.innerHTML = '<span class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Sudah</span>';
-                            }
-                        }
-
-                        // Tampilkan notifikasi sukses
-                        const notif = document.createElement('div');
-                        notif.className = 'mb-5 p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-3 text-emerald-800 text-sm';
-                        notif.innerHTML = '<span class="material-symbols-outlined text-emerald-500">check_circle</span> ' + data.pesan;
-                        document.querySelector('.max-w-7xl').prepend(notif);
-                        setTimeout(() => notif.remove(), 5000);
-
-                        tutupModal();
-                    } else {
-                        alert(data.pesan || 'Gagal mengoreksi kategori.');
-                    }
-                })
-                .catch(err => {
-                    console.error('Koreksi error:', err);
-                    alert('Terjadi kesalahan. Silakan coba lagi.');
-                })
-                .finally(() => {
-                    btn.disabled = false;
-                    btn.innerHTML = 'Simpan';
-                });
-            });
         });
-
-        function tutupModal() {
-            document.getElementById('modal-koreksi').classList.add('hidden');
-            document.getElementById('modal-koreksi').classList.remove('flex');
-            laporanIdKoreksi = null;
-        }
     </script>
 </body>
 </html>

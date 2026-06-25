@@ -98,7 +98,6 @@ Route::middleware('auth')->group(function () {
         Route::post('/dashboardadmin/naivebayes/klasifikasi', [NaiveBayesController::class, 'klasifikasi'])->name('admin.naivebayes.klasifikasi');
         Route::get('/dashboardadmin/naivebayes/evaluasi', [NaiveBayesController::class, 'evaluasi'])->name('admin.naivebayes.evaluasi');
         Route::post('/dashboardadmin/naivebayes/reset', [NaiveBayesController::class, 'reset'])->name('admin.naivebayes.reset');
-        Route::post('/dashboardadmin/naivebayes/evaluasi/{id}/koreksi', [NaiveBayesController::class, 'koreksiKategori'])->name('admin.naivebayes.koreksi');
         // Admin Kategori Management
         Route::resource('/dashboardadmin/kategori', \App\Http\Controllers\KategoriController::class)->names('admin.kategori')->except(['create', 'show', 'edit']);
     });
