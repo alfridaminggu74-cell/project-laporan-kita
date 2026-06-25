@@ -116,10 +116,9 @@ class NaiveBayesService
      */
     public function train(?array $laporanIds = null): array
     {
-        // Ambil data laporan untuk training — hanya yang sudah diverifikasi
+        // Ambil SEMUA data laporan yang sudah punya kategori untuk training
         $query = Laporan::whereNotNull('kategori')
-            ->where('kategori', '!=', '')
-            ->where('is_training', true);
+            ->where('kategori', '!=', '');
 
         if ($laporanIds) {
             $query->whereIn('id', $laporanIds);
@@ -359,7 +358,7 @@ class NaiveBayesService
         $results  = [];
 
         foreach ($laporans as $laporan) {
-            $text = ($laporan->judul ?? '') . ' ' . ($laporan->deskripsi ?? '');
+            $text = ($laporan->judul ?? '') . ' ' . ($laporan->deskripsi ?? '') . ' ' . ($laporan->lokasi ?? '');
             $hasil = $this->predict($text);
             $results[] = [
                 'id'          => $laporan->id,
